@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Leaflet Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"/>
+    <style>
+    html { height:100%;}
+    body {
+        height:100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    #map {
+        width: 100%;
+        margin: 0 auto;
+        height: 95%;
+    }
+    .info {
+    z-index: 1000;
+    position: absolute;
+    right: 40%;
+    top: 5%;
+    padding: 6px 8px;
+    font: 14px Arial, Helvetica, sans-serif;
+    text-align: center;
+    background: white;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.info h1 {
+    font-size: 16px;
+    margin: 0 0 5px;
+    color: #777777;
+}
+
+
+.legend {
+    line-height: 18px;
+    color: #333333;
+    font-family: 'Open Sans', Helvetica, sans-serif;
+    padding: 6px 8px;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+
+.legend i {
+    width: 28px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+
+
+.legend p {
+    font-size: 12px;
+    line-height: 18px;
+    margin: 0;
+}
+
+
+    </style>
+</head>
+<body>
+    <!-- Our web map and content will go here -->
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <div id="map" style="width: 1000px; height: 600px">
+    </div>
+    <script>
+        var map = L.map('map', {center: [39.981192, -75.155399], zoom: 10});
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        map.doubleClickZoom.disable();
+
+        // add point marker
+        var myDataPoint = L.marker([39.981192, -75.155399]).addTo(map);
+        myDataPoint.bindPopup("This is Temple University.");
+        myDataPoint.bindPopup("<h3>Temple University</h3><p>Philadelphia, PA<br>Information about Temple University.</p>");
+        
+        // create a polyline
+        var myDataLine = L.polyline([[40.080922, -75.207875], 
+                                    [40.077375, -75.201967],
+                                    [40.073474, -75.196917],
+                                    [40.065221, -75.191110],
+                                    [40.062765, -75.185204],
+                                    [40.060498, -75.178856],
+                                    [40.051092, -75.171567],
+                                    [40.037719, -75.171922],
+                                    [40.036117, -75.161619],
+                                    [40.036117, -75.161619],
+                                    [39.981586, -75.149515]
+                                    ],
+                        {color: 'red', weight: 5}).addTo(map);
+
+        // Bind popup to line object
+        myDataLine.bindPopup("Chestnut Line");
+
+        // create a polygon of Philadelphia metro
+        var myArea = L.polygon([[40.134261, -75.270050],
+                                 [40.138132, -74.888837],
+                                 [39.873212, -74.988837],
+                                 [39.859046, -75.377775]
+                                 ],
+                     {color: 'orange', weight: 1}).addTo(map);
+
+        // Bind popup to area object
+        myArea.bindPopup("Philadelphia metro");
+
+        // Create an Empty Popup
+        var popup = L.popup();
+
+        // Write function to set Properties of the Popup
+        function onMapClick(e) {
+            popup
+                .setLatLng(e.latlng)
+                .setContent("You clicked the map at " + e.latlng.toString())
+                .openOn(map);
+        }
+        
+        // Listen for a click event on the Map element
+        map.on('click', onMapClick);
+        function styleFunc(feature) {
+    return {
+        fillColor: setColorFunc(feature.properties.num_bll_5p),
+        fillOpacity: 0.9,
+        weight: 1,
+        opacity: 1,
+        color: '#ffffff',
+        dashArray: '3'
+    };
+         function setColorFunc(density){
+    return density > 40 ? '#3E2723' :
+           density > 30 ? '#D84315' :
+           density > 20 ? '#F57C00' :
+           density > 10 ? '#FFEB3B' :
+           density > 0 ? '#7CB342' :
+                         '#BFBCBB';
+};
+}
+        var neighborhoodsLayer = null;
+        $.getJSON("data/blood_lead.geojson",function(data){
+        neighborhoodsLayer = L.geoJson(data, {
+        style: styleFunc,
+        onEachFeature: function onEachFeatureFunc(feature, layer){
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomFeature
+        
+    });
+    function highlightFeature(e){
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: '#555',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+    // for different web browsers
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+    }
+}
+function resetHighlight(e) {
+    neighborhoodsLayer.resetStyle(e.target);
+}
+function zoomFeature(e){
+    console.log(e.target.getBounds());
+    map.fitBounds(e.target.getBounds().pad(1.5));
+} 
+    layer.bindPopup('num_bll_5p: '+feature.properties.num_bll_5p);
+}
+    }).addTo(map);
+    L.control.scale({position: 'bottomleft'}).addTo(map);
+    // Create Leaflet Control Object for Legend
+var legend = L.control({position: 'bottomright'});
+
+// Function that runs when legend is added to map
+legend.onAdd = function (map) {
+    // Create Div Element and Populate it with HTML
+    var div = L.DomUtil.create('div', 'legend');            
+    div.innerHTML += '<b>num_bll_5p</b><br />';
+    div.innerHTML += 'by census tract<br />';
+    div.innerHTML += '<br>';
+    div.innerHTML += '<i style="background: #3E2723"></i><p>40+</p>';
+    div.innerHTML += '<i style="background: #D84315"></i><p>30-39</p>';
+    div.innerHTML += '<i style="background: #F57C00"></i><p>20-29</p>';
+    div.innerHTML += '<i style="background: #FFEB3B"></i><p>10-19</p>';
+    div.innerHTML += '<i style="background: #7CB342"></i><p>0-9</p>';
+    div.innerHTML += '<hr>';
+    div.innerHTML += '<i style="background: #BFBCBB"></i><p>No Data</p>';
+    
+    // Return the Legend div containing the HTML content
+    return div;
+};
+
+// Add Legend to Map
+legend.addTo(map);
+});
+
+
+    </script>
+</body>
+</html>
